@@ -235,4 +235,44 @@ describe('POST /users', () => {
             })
             .catch(e => done(e));
     });
-})
+});
+
+describe('POST /users/login', () => {
+    it('should login user and return auth token', (done) => {
+        request(app)
+            .post('/users/login')
+            .send({
+                email: users[1].email,
+                password: users[1].password
+            })
+            .then((response) => {
+                expect(response.status).toBe(200);
+                expect(response.headers['x-auth']).not.toBeNull();
+                return User.findById(users[1]._id).then((user) => {
+                    expect(user.tokens[0].access).toBe('auth');
+                    expect(user.tokens[0].token).toBe(response.headers['x-auth']);
+                    done();
+                });
+            })
+            .catch(e => done(e));
+    });
+
+    it('should not login user and return auth token', (done) => {
+        request(app)
+            .post('/users/login')
+            .send({
+                email: users[1].email,
+                password: 'wrongPassword'
+            })
+            .then((response) => {
+                expect(response.status).toBe(400);
+                expect(response.headers['x-auth']).toBeUndefined();
+                return User.findById(users[1]._id)
+            })
+            .then((user) => {
+                expect(user.tokens.length).toBe(0);
+                done();
+            })
+            .catch(e => done(e));
+    });
+});
